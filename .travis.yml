@@ -4,21 +4,23 @@ node_js: 6
 addons:
   apt:
     packages:
-      - wine
+    - wine
 cache:
   directories:
-    - node_modules
+  - node_modules
 script:
-  - npm run typings
-  - npm run build
+- npm run typings
+- npm run build
 before_deploy:
-  - npm run package
+- npm run package
 deploy:
   provider: releases
+  api_key:
+    secure: HuxYGhMHtbckoo69ba1fMdC3abOUf5fR0HPW6BDRH8/O3Fte4JwhvyYrXiwSHUQKoYd3ktHObTkjOtuiNT6dbM6OZa3RlFKZxQYzgLthiP18XAQjTkAyMvAUPvHBG7DkU0Byy4TegAn1imG1usIDg6FtA+o+6fMTNwm34fyFoniuGVKthWf0Gu22IKTBPskAzSA0YIOdOUqkI8ojnPvsNqNKPTNcE4zvPLPhoCtU4MGfblFRm1CskF6oaKT5H70/0IjI+jBBAgrcn+cFE2SDE28f75fMqrJ0YnFPMzFZXI7tQ/+w+cOSsoDZHUwRtp1k/NDmsufQ2YSfNrbR31iCKnT52MaTazKuXETKruNP2u9sj4w2ERBNnTIaVCqRAhcQnx/5JgI6hnqbfbc067tKssLUNtfbpMJao06gksn9xWr1ZWom29+ZiLalN9p+2heCkV7S4DmIhRehxVeVt0ELArYb0E6VkSYbKJq8WyD5xFn4YJ7pEetypgLugF+y1kJz3kulA/yZH1eKbwxFbJg5SIBtQHmDykc4PEIunRxTjdl6KT5E7mds5JRuthhzaNsIkJkj4vk3FWBLX//O3nOHtfz8/6r7XEcfC3OpFnxsoN98bQAxg64G/32XPgGVGyQs7nIPVBYMSdAzma67PbRkahCyWoU49lFlNJmSXQy+5gk=
   file:
-    - webpeercast-linux.zip
-    - webpeercast-mac.zip
-    - webpeercast-win.zip
+  - webpeercast-linux.zip
+  - webpeercast-mac.zip
+  - webpeercast-win.zip
   prerelease: true
   on:
     tags: true
