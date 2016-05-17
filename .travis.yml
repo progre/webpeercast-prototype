@@ -13,3 +13,12 @@ script:
   - npm run build
 before_deploy:
   - npm run package
+deploy:
+  provider: releases
+  file:
+    - webpeercast-linux.zip
+    - webpeercast-mac.zip
+    - webpeercast-win.zip
+  prerelease: true
+  on:
+    tags: true

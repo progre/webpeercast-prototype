@@ -1,9 +1,9 @@
 {
-  "name": "template-typescript",
-  "description": "Project template.",
-  "version": "1.0.0",
+  "name": "webpeercast",
+  "description": "p2p broadcasting for everyone with web technology",
+  "version": "0.0.0",
   "author": "progre",
-  "bugs": "https://github.com/progre/template-typescript/issues",
+  "bugs": "https://github.com/progre/webpeercast/issues",
   "dependencies": {
     "log4js": "^0.6.31"
   },
@@ -47,15 +47,14 @@
   "files": [
     "lib"
   ],
-  "homepage": "https://github.com/progre/template-typescript/",
+  "homepage": "https://github.com/progre/webpeercast/",
   "keywords": [
-    "electron",
-    "template"
+    "electron"
   ],
   "license": "MIT",
   "main": "lib/index.js",
   "private": true,
-  "repository": "https://github.com/progre/template-typescript.git",
+  "repository": "https://github.com/progre/webpeercast.git",
   "scripts": {
     "typings": "typings install",
     "build": "gulp release-build",
