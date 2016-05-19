@@ -9,7 +9,14 @@ import "./gulp/jade.js";
 import "./gulp/selflint.js";
 import "./gulp/stylus.js";
 import "./gulp/test.js";
-import "./gulp/ts.js";
+import {config as tsConfig} from "./gulp/ts.js";
+
+tsConfig.browser = {
+    files: [
+        { src: "src/public/js/index.ts", dest: "lib/public/js/" },
+        { src: "src/renderer/js/index.ts", dest: "lib/renderer/js/" }
+    ]
+};
 
 gulp.task("clean", async (done) => {
     await del("lib/");
