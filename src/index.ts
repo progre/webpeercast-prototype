@@ -15,7 +15,7 @@ async function main() {
         resizable: true,
         show: true
     });
-    win.loadURL(`file://${__dirname}/../public/index.html`);
+    win.loadURL(`file://${__dirname}/public/index.html`);
 }
 
 main()
