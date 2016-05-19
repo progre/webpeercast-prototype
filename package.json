@@ -6,7 +6,8 @@
   "bugs": "https://github.com/progre/webpeercast/issues",
   "dependencies": {
     "log4js": "^0.6.36",
-    "st": "^1.1.0"
+    "st": "^1.1.0",
+    "websocket": "^1.0.23"
   },
   "devDependencies": {
     "babel-eslint": "^6.0.4",
@@ -43,7 +44,8 @@
     "typescript": "^1.8.10",
     "typings": "^1.0.4",
     "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.1.0"
+    "vinyl-source-stream": "^1.1.0",
+    "webrtc-adapter": "^1.2.2"
   },
   "files": [
     "lib"

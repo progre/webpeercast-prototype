@@ -1,9 +1,10 @@
 /// <reference path="../typings/index.d.ts" />
 try { require("source-map-support").install(); } catch (e) { /* empty */ }
-const log4js = require("log4js");
-import {app, BrowserWindow} from "electron";
 import * as http from "http";
+const log4js = require("log4js");
 const st = require("st");
+import {server as WebSocketServer} from "websocket";
+import {app, BrowserWindow} from "electron";
 
 log4js.configure({
     appenders: [{ type: "console", layout: { type: "basic" } }]
@@ -19,10 +20,37 @@ async function main() {
     });
     win.loadURL(`file://${__dirname}/renderer/index.html`);
 
-    http.createServer(st({
+    let httpServer = http.createServer(st({
         path: `${__dirname}/public`,
         index: "index.html"
-    })).listen(80);
+    }));
+    let wsServer = new WebSocketServer({
+        httpServer,
+        autoAcceptConnections: true
+    });
+    wsServer.on("request", request => {
+        // if (!originIsAllowed(request.origin)) {
+        //     // Make sure we only accept requests from an allowed origin 
+        //     request.reject();
+        //     console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+        //     return;
+        // }
+
+        let connection = request.accept("echo-protocol", request.origin);
+        connection.on("message", message => {
+            if (message.type === "utf8") {
+                console.log("Received Message: " + message.utf8Data);
+                connection.sendUTF(message.utf8Data);
+            } else if (message.type === "binary") {
+                console.log("Received Binary Message of " + message.binaryData.length + " bytes");
+                connection.sendBytes(message.binaryData);
+            }
+        });
+        connection.on("close", (reasonCode, description) => {
+            console.log((new Date()) + " Peer " + connection.remoteAddress + " disconnected.");
+        });
+    });
+    httpServer.listen(80);
 }
 
 main().catch(e => log4js.getLogger().error(e.stack != null ? e.stack : e));
