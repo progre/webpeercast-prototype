@@ -15,11 +15,9 @@ export function fancy_log(msg: any, color: any) {
     pre.scrollIntoView(false);
 }
 
-let num_channels: any;
-num_channels = 0;
+let num_channels = 0;
 let datachannels = new Array(0);
 let preset: any = document.getElementById("preset");
-declare let dc2: any;
 let iter2 = 0;
 
 export function pc1OnDataChannel(event: any) {
