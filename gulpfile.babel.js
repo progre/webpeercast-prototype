@@ -3,7 +3,7 @@ import * as gutil from "gulp-util";
 import del from "del";
 import {mkdir} from "fs";
 
-import "./gulp/copy.js";
+import {config as copyConfig} from "./gulp/copy.js";
 import "./gulp/electron.js";
 import "./gulp/jade.js";
 import "./gulp/selflint.js";
@@ -14,6 +14,7 @@ import {config as tsConfig} from "./gulp/ts.js";
 tsConfig.browser = {
     files: [
         { src: "src/public/js/index.ts", dest: "lib/public/js/" },
+        { src: "src/public/js/sample.ts", dest: "lib/public/js/" },
         { src: "src/renderer/js/index.ts", dest: "lib/renderer/js/" }
     ]
 };
@@ -56,7 +57,7 @@ gulp.task("release-build",
 gulp.task("watch", () => {
     let signal = false;
 
-    gulp.watch("src/**/*.js", gulp.series(begin, "copy:copy", end));
+    gulp.watch(copyConfig.src, gulp.series(begin, "copy:copy", end));
     gulp.watch(["src/**/*.ts*", "!src/test/**"], gulp.series(begin, "ts:debug", "test:test", end));
     gulp.watch("src/**/*.jade", gulp.series(begin, "jade:debug", end));
     gulp.watch("src/**/*.stylus", gulp.series(begin, "stylus:stylus", end));
