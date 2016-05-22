@@ -2,7 +2,33 @@ import { log, pc2OnDataChannel } from "./samplelib.ts";
 import { EventEmitter } from "events";
 
 class Answerer extends EventEmitter {
-    pc = new RTCPeerConnection(null);
+    pc = new RTCPeerConnection(<any>{
+        iceServers: [{
+            urls: [
+                "stun:stun.l.google.com:19302",
+                "stun:stun1.l.google.com:19302",
+                "stun:stun2.l.google.com:19302",
+                "stun:stun3.l.google.com:19302",
+                "stun:stun4.l.google.com:19302",
+                "stun:stun01.sipphone.com",
+                "stun:stun.ekiga.net",
+                "stun:stun.fwdnet.net",
+                "stun:stun.ideasip.com",
+                "stun:stun.iptel.org",
+                "stun:stun.rixtelecom.se",
+                "stun:stun.schlund.de",
+                "stun:stunserver.org",
+                "stun:stun.softjoys.com",
+                "stun:stun.voiparound.com",
+                "stun:stun.voipbuster.com",
+                "stun:stun.voipstunt.com",
+                "stun:stun.voxgratia.org",
+                "stun:stun.xten.com"
+            ]
+        }]
+    });
+    didSetRemote = false;
+    iceCandidateQueue: RTCIceCandidate[] = [];
 
     constructor() {
         super();
@@ -21,18 +47,26 @@ class Answerer extends EventEmitter {
 
     async answerOffer(offer: RTCSessionDescription) {
         await this.pc.setRemoteDescription(offer);
+        this.didSetRemote = true;
+        await Promise.all(this.iceCandidateQueue.map(
+            x => (this.pc as any).addIceCandidate(x)));
         let answer: RTCSessionDescription = await (this.pc as any).createAnswer();
         await this.pc.setLocalDescription(answer);
         return answer;
+    }
+
+    async addIceCandidate(candidate: RTCIceCandidate) {
+        if (this.didSetRemote) {
+            await (this.pc as any).addIceCandidate(candidate);
+        } else {
+            this.iceCandidateQueue.push(candidate);
+        }
     }
 }
 
 let obj = new Answerer();
 (window as any).answererObj = obj;
 (window as any).pc2 = obj.pc;
-(window as any).pc2_didSetRemote = false;
-(window as any).pc1_ice_queued = [];
-(window as any).pc2_ice_queued = [];
 
 let answerer = new EventEmitter();
 
@@ -41,10 +75,6 @@ answerer.on("offer", async (offerJson: string) => {
         let offer = new RTCSessionDescription(JSON.parse(offerJson));
         log("Offer: " + offer.sdp);
 
-        (window as any).pc2_didSetRemote = true;
-        while ((window as any).pc2_ice_queued.length > 0) {
-            await ((window as any).pc2 as any).addIceCandidate((window as any).pc2_ice_queued.shift());
-        }
         let answer = await obj.answerOffer(offer);
         log("Answer: " + answer.sdp);
         (window as any).remoteOfferer.emit("answer", JSON.stringify(answer));
@@ -55,11 +85,7 @@ answerer.on("offer", async (offerJson: string) => {
 
 answerer.on("icecandidate", async (candidateJSON: string) => {
     let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
-    if ((window as any).pc2_didSetRemote) {
-        await ((window as any).pc2 as any).addIceCandidate(candidate);
-    } else {
-        (window as any).pc2_ice_queued.push(candidate);
-    }
+    await obj.addIceCandidate(candidate);
 });
 
 function close() {
