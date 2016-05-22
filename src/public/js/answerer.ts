@@ -8,11 +8,27 @@ class Answerer extends EventEmitter {
         super();
 
         this.pc.ondatachannel = e => super.emit("datachannel", e);
+
+        this.pc.onicecandidate = e => {
+            let candidate = e.candidate;
+            if (!candidate) {
+                log("pc2 got end-of-candidates signal");
+                return;
+            }
+            log("pc2 found ICE candidate: " + JSON.stringify(e.candidate));
+            if ((window as any).pc1_didSetRemote) {
+                (window as any).pc1.addIceCandidate(e.candidate);
+            } else {
+                (window as any).pc1_ice_queued.push(e.candidate);
+            }
+        };
     }
 
-    async receiveOffer(offer: RTCSessionDescription) {
+    async answerOffer(offer: RTCSessionDescription) {
         await this.pc.setRemoteDescription(offer);
-        return await (this.pc as any).createAnswer() as RTCSessionDescription;
+        let answer: RTCSessionDescription = await (this.pc as any).createAnswer();
+        await this.pc.setLocalDescription(answer);
+        return answer;
     }
 }
 
@@ -26,39 +42,23 @@ let obj = new Answerer();
 
 let answerer = new EventEmitter();
 
-answerer.on("step1", async (offer: any) => {
+answerer.on("offer", async (offerJson: string) => {
     try {
-        obj.pc.onicecandidate = function (obj: any) {
-            if (obj.candidate) {
-                log("pc2 found ICE candidate: " + JSON.stringify(obj.candidate));
-                if ((window as any).pc1_didSetRemote) {
-                    (window as any).pc1.addIceCandidate(obj.candidate);
-                } else {
-                    (window as any).pc1.ice_queued.push(obj.candidate);
-                }
-            } else {
-                log("pc2 got end-of-candidates signal");
-            }
-        };
-
+        let offer = new RTCSessionDescription(JSON.parse(offerJson));
         log("Offer: " + offer.sdp);
 
         (window as any).pc2_didSetRemote = true;
         while ((window as any).pc2_ice_queued.length > 0) {
             await ((window as any).pc2 as any).addIceCandidate((window as any).pc2_ice_queued.shift());
         }
-        await step4(await obj.receiveOffer(offer));
+        let answer = await obj.answerOffer(offer);
+        log("Answer: " + answer.sdp);
+        (window as any).remoteOfferer.emit("answer", JSON.stringify(answer));
     } catch (e) {
         (window as any).failed(e);
     }
 });
 
-// pc2.createAnswer finished, call pc2.setLocal
-async function step4(answer: any) {
-    log("Answer: " + answer.sdp);
-    await obj.pc.setLocalDescription(answer);
-    (window as any).remoteOfferer.emit("answer", JSON.stringify(answer));
-}
 
 function close() {
     obj.pc.close();
