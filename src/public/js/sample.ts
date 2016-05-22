@@ -3,9 +3,8 @@ import "babel-polyfill";
 import "webrtc-adapter";
 
 import { log, fancy_log, pc1OnDataChannel, pc2OnDataChannel } from "./samplelib.ts";
-import * as webRTC from "./webrtc.ts";
-import "./answerer.ts";
-import { step0 } from "./offerer.ts";
+import "./pc2.ts";
+import { step0 } from "./pc1.ts";
 
 let button: any = document.getElementById("thebutton");
 let text_pc1: any = document.getElementById("pc1_input");
