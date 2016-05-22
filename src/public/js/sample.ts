@@ -2,7 +2,7 @@
 import "babel-polyfill";
 import "webrtc-adapter";
 
-import { log, fancy_log, pc1OnDataChannel } from "./samplelib.ts";
+import { log, fancy_log, pc1OnDataChannel, pc2OnDataChannel } from "./samplelib.ts";
 import * as webRTC from "./webrtc.ts";
 import "./answerer.ts";
 import { step0 } from "./offerer.ts";
@@ -37,11 +37,11 @@ function submitenter(myfield: any, e: any) {
 
 var sendit = function (which: any) {
     iter = iter + 1;
-    //log("Sending message #" + iter + " this = " + this);
-    if (which == 1) {
+    // log("Sending message #" + iter + " this = " + this);
+    if (which === 1) {
         (window as any).dc1.send("1: " + text_pc1.value);
         text_pc1.value = "";
-    } else if (which == 2) {
+    } else if (which === 2) {
         (window as any).dc2.send("2: " + text_pc2.value);
         text_pc2.value = "";
     } else {
@@ -51,11 +51,11 @@ var sendit = function (which: any) {
 
 var sendblob = function (which: any) {
     iter = iter + 1;
-    //log("Sending blob #" + iter + " this = " + this);
-    if (which == 1) {
+    // log("Sending blob #" + iter + " this = " + this);
+    if (which === 1) {
         (window as any).dc1.send(blob_pc1.files[0]);
         blob_pc1.value = "";
-    } else if (which == 2) {
+    } else if (which === 2) {
         (window as any).dc2.send(blob_pc2.files[0]);
         blob_pc2.value = "";
     } else {
@@ -76,12 +76,13 @@ async function start() {
     }
 
     (window as any).offererObj.on("datachannel", pc1OnDataChannel);
+    (window as any).answererObj.on("datachannel", pc2OnDataChannel);
     (window as any).offererObj.on("datachannelmessage", (evt: any) => {
         console.log(evt);
         if (evt.data instanceof Blob) {
             fancy_log("*** pc2 sent Blob: " + evt.data + ", length=" + evt.data.size, "blue");
         } else {
-            fancy_log('pc2 said: ' + evt.data, "blue");
+            fancy_log("pc2 said: " + evt.data, "blue");
         }
     });
     (window as any).offererObj.on("datachannelopen", () => {

@@ -1,8 +1,5 @@
 import { EventEmitter } from "events";
-import { log, fancy_log } from "./samplelib.ts";
-
-let offerer = new EventEmitter();
-(window as any).offerer = offerer;
+import { log } from "./samplelib.ts";
 
 class Offerer extends EventEmitter {
     pc = new RTCPeerConnection(null);
@@ -33,6 +30,9 @@ class Offerer extends EventEmitter {
     }
 }
 
+let offerer = new EventEmitter();
+(window as any).remoteOfferer = offerer;
+
 let obj = new Offerer();
 (window as any).offererObj = obj;
 (window as any).pc1 = obj.pc;
@@ -53,7 +53,7 @@ export async function step0() {
                 log("pc1 got end-of-candidates signal");
             }
         };
-        (window as any).answerer.emit("step1", offer);
+        (window as any).remoteAnswerer.emit("step1", offer);
     } catch (e) {
         (window as any).failed(e);
     }
