@@ -2,8 +2,8 @@
 import "babel-polyfill";
 import "webrtc-adapter";
 
-import { log, fancy_log, pc1OnDataChannel, pc2OnDataChannel } from "./samplelib.ts";
-import "./pc2.ts";
+import { log } from "./samplelib.ts";
+import { init as pc2Init } from "./pc2.ts";
 import { step0 } from "./pc1.ts";
 
 let button: any = document.getElementById("thebutton");
@@ -41,7 +41,7 @@ var sendit = function (which: any) {
         (window as any).dc1.send("1: " + text_pc1.value);
         text_pc1.value = "";
     } else if (which === 2) {
-        (window as any).dc2.send("2: " + text_pc2.value);
+        (window as any).answererObj.dc.send("2: " + text_pc2.value);
         text_pc2.value = "";
     } else {
         log("Unknown send " + which);
@@ -55,7 +55,7 @@ var sendblob = function (which: any) {
         (window as any).dc1.send(blob_pc1.files[0]);
         blob_pc1.value = "";
     } else if (which === 2) {
-        (window as any).dc2.send(blob_pc2.files[0]);
+        (window as any).answererObj.dc.send(blob_pc2.files[0]);
         blob_pc2.value = "";
     } else {
         log("Unknown sendblob " + which);
@@ -74,23 +74,9 @@ async function start() {
         datawindow.removeChild(datawindow.firstChild);
     }
 
-    (window as any).offererObj.on("datachannel", pc1OnDataChannel);
-    (window as any).answererObj.on("datachannel", pc2OnDataChannel);
-    (window as any).offererObj.on("datachannelmessage", (evt: any) => {
-        console.log(evt);
-        if (evt.data instanceof Blob) {
-            fancy_log("*** pc2 sent Blob: " + evt.data + ", length=" + evt.data.size, "blue");
-        } else {
-            fancy_log("pc2 said: " + evt.data, "blue");
-        }
-    });
-    (window as any).offererObj.on("datachannelopen", () => {
-        log("pc1 onopen fired for " + (window as any).offererObj.dc);
-        (window as any).offererObj.dc.send("pc1 says this will likely be queued...");
-    });
-    (window as any).offererObj.on("datachannelclose", () => {
-        log("pc1 onclose fired");
-    });
+    let {obj: pc2Obj, remote: pc2Remote} = pc2Init((window as any).remoteOfferer);
+    (window as any).answererObj = pc2Obj;
+    (window as any).remoteAnswerer = pc2Remote;
 
     await step0();
 }

@@ -1,5 +1,5 @@
 import { EventEmitter } from "events";
-import { log } from "./samplelib.ts";
+import { log, fancy_log } from "./samplelib.ts";
 import Offerer from "./offerer.ts";
 
 let offerer = new EventEmitter();
@@ -10,13 +10,18 @@ obj.on("icecandidate", (e: RTCIceCandidateEvent) => {
     try {
         let candidate = e.candidate;
         if (!candidate) {
-            log("pc1 got end-of-candidates signal");
             return;
         }
-        log("pc1 found ICE candidate: " + JSON.stringify(candidate));
-        (window as any).remoteAnswerer.emit("icecandidate", JSON.stringify(candidate))
+        (window as any).remoteAnswerer.emit("icecandidate", JSON.stringify(candidate));
     } catch (e) {
         (window as any).failed(e);
+    }
+});
+obj.on("datachannelmessage", (evt: any) => {
+    if (evt.data instanceof Blob) {
+        fancy_log("*** pc2 sent Blob: " + evt.data + ", length=" + evt.data.size, "blue");
+    } else {
+        fancy_log("pc2 said: " + evt.data, "blue");
     }
 });
 
@@ -37,7 +42,6 @@ offerer.on("answer", async (answerJSON: string) => {
     try {
         let answer = new RTCSessionDescription(JSON.parse(answerJSON));
         await obj.putAnswer(answer);
-        log("HIP HIP HOORAY");
     } catch (e) {
         (window as any).failed(e);
     }

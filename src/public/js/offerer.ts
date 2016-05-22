@@ -1,14 +1,10 @@
 import PeerBase from "./peerbase";
 
 export default class Offerer extends PeerBase {
-    dc = this.pc.createDataChannel("");
-
     constructor() {
         super();
 
-        this.dc.onmessage = e => super.emit("datachannelmessage", e);
-        this.dc.onopen = e => super.emit("datachannelopen", e);
-        this.dc.onclose = e => super.emit("datachannelclose", e);
+        this.setDataChannel(this.pc.createDataChannel(""));
     }
 
     async beginOffer() {

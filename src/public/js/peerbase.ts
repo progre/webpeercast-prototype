@@ -26,6 +26,7 @@ export default class PeerBase extends EventEmitter {
             ]
         }]
     });
+    dc: RTCDataChannel;
     private didSetRemote = false;
     private iceCandidateQueue: RTCIceCandidate[] = [];
 
@@ -34,6 +35,13 @@ export default class PeerBase extends EventEmitter {
 
         this.pc.ondatachannel = e => super.emit("datachannel", e);
         this.pc.onicecandidate = e => super.emit("icecandidate", e);
+    }
+
+    protected setDataChannel(dc: RTCDataChannel) {
+        this.dc = dc;
+        this.dc.onopen = e => super.emit("datachannelopen", e);
+        this.dc.onmessage = e => super.emit("datachannelmessage", e);
+        this.dc.onclose = e => super.emit("datachannelclose", e);
     }
 
     protected async setRemoteDescription(sd: RTCSessionDescription) {
