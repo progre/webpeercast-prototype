@@ -8,7 +8,6 @@ class Answerer extends EventEmitter {
         super();
 
         this.pc.ondatachannel = e => super.emit("datachannel", e);
-
         this.pc.onicecandidate = e => {
             let candidate = e.candidate;
             if (!candidate) {
@@ -16,11 +15,7 @@ class Answerer extends EventEmitter {
                 return;
             }
             log("pc2 found ICE candidate: " + JSON.stringify(e.candidate));
-            if ((window as any).pc1_didSetRemote) {
-                (window as any).pc1.addIceCandidate(e.candidate);
-            } else {
-                (window as any).pc1_ice_queued.push(e.candidate);
-            }
+            (window as any).remoteOfferer.emit("icecandidate", JSON.stringify(e.candidate));
         };
     }
 
@@ -35,7 +30,6 @@ class Answerer extends EventEmitter {
 let obj = new Answerer();
 (window as any).answererObj = obj;
 (window as any).pc2 = obj.pc;
-(window as any).pc1_didSetRemote = false;
 (window as any).pc2_didSetRemote = false;
 (window as any).pc1_ice_queued = [];
 (window as any).pc2_ice_queued = [];
@@ -59,6 +53,14 @@ answerer.on("offer", async (offerJson: string) => {
     }
 });
 
+answerer.on("icecandidate", async (candidateJSON: string) => {
+    let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
+    if ((window as any).pc2_didSetRemote) {
+        await ((window as any).pc2 as any).addIceCandidate(candidate);
+    } else {
+        (window as any).pc2_ice_queued.push(candidate);
+    }
+});
 
 function close() {
     obj.pc.close();

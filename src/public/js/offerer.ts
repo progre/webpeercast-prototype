@@ -27,7 +27,9 @@ class Offerer extends EventEmitter {
             ]
         }]
     });
-    dc = this.pc.createDataChannel("This is pc1", {});
+    dc = this.pc.createDataChannel("");
+    private didSetRemote = false;
+    private iceCandidateQueue: RTCIceCandidate[] = [];
 
     constructor() {
         super();
@@ -36,6 +38,15 @@ class Offerer extends EventEmitter {
         this.dc.onmessage = e => super.emit("datachannelmessage", e);
         this.dc.onopen = e => super.emit("datachannelopen", e);
         this.dc.onclose = e => super.emit("datachannelclose", e);
+        this.pc.onicecandidate = e => {
+            let candidate = e.candidate;
+            if (!candidate) {
+                log("pc1 got end-of-candidates signal");
+                return;
+            }
+            log("pc1 found ICE candidate: " + JSON.stringify(candidate));
+            (window as any).remoteAnswerer.emit("icecandidate", JSON.stringify(candidate))
+        };
     }
 
     async beginOffer() {
@@ -47,6 +58,17 @@ class Offerer extends EventEmitter {
 
     async putAnswer(answer: RTCSessionDescription) {
         await this.pc.setRemoteDescription(answer);
+        this.didSetRemote = true;
+        await Promise.all(this.iceCandidateQueue.map(
+            x => (this.pc as any).addIceCandidate(x)));
+    }
+
+    async addIceCandidate(candidate: RTCIceCandidate) {
+        if (this.didSetRemote) {
+            await (this.pc as any).addIceCandidate(candidate);
+        } else {
+            this.iceCandidateQueue.push(candidate);
+        }
     }
 
     close() {
@@ -65,18 +87,6 @@ let obj = new Offerer();
 export async function step0() {
     try {
         let offer = await obj.beginOffer();
-        obj.pc.onicecandidate = async function (obj: any) {
-            if (obj.candidate) {
-                log("pc1 found ICE candidate: " + JSON.stringify(obj.candidate));
-                if ((window as any).pc2_didSetRemote) {
-                    await ((window as any).pc2 as any).addIceCandidate(obj.candidate);
-                } else {
-                    (window as any).pc2_ice_queued.push(obj.candidate);
-                }
-            } else {
-                log("pc1 got end-of-candidates signal");
-            }
-        };
         (window as any).remoteAnswerer.emit("offer", JSON.stringify(offer));
     } catch (e) {
         (window as any).failed(e);
@@ -84,16 +94,12 @@ export async function step0() {
 }
 
 // pc2.setLocal finished, call pc1.setRemote
-offerer.on("answer", async (answer: any) => {
-    await obj.putAnswer(new RTCSessionDescription(JSON.parse(answer)));
-    await step6();
+offerer.on("answer", async (answerJSON: string) => {
+    await obj.putAnswer(new RTCSessionDescription(JSON.parse(answerJSON)));
+    log("HIP HIP HOORAY");
 });
 
-// pc1.setRemote finished, make a data channel
-async function step6() {
-    (window as any).pc1_didSetRemote = true;
-    while ((window as any).pc1_ice_queued.length > 0) {
-        await (obj.pc as any).addIceCandidate((window as any).pc1_ice_queued.shift());
-    }
-    log("HIP HIP HOORAY");
-}
+offerer.on("icecandidate", async (candidateJSON: string) => {
+    let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
+    await obj.addIceCandidate(candidate);
+});
