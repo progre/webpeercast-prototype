@@ -1,44 +1,16 @@
 import { EventEmitter } from "events";
 import { log } from "./samplelib.ts";
+import PeerBase from "./peerbase";
 
-class Offerer extends EventEmitter {
-    pc = new RTCPeerConnection(<any>{
-        iceServers: [{
-            urls: [
-                "stun:stun.l.google.com:19302",
-                "stun:stun1.l.google.com:19302",
-                "stun:stun2.l.google.com:19302",
-                "stun:stun3.l.google.com:19302",
-                "stun:stun4.l.google.com:19302",
-                "stun:stun01.sipphone.com",
-                "stun:stun.ekiga.net",
-                "stun:stun.fwdnet.net",
-                "stun:stun.ideasip.com",
-                "stun:stun.iptel.org",
-                "stun:stun.rixtelecom.se",
-                "stun:stun.schlund.de",
-                "stun:stunserver.org",
-                "stun:stun.softjoys.com",
-                "stun:stun.voiparound.com",
-                "stun:stun.voipbuster.com",
-                "stun:stun.voipstunt.com",
-                "stun:stun.voxgratia.org",
-                "stun:stun.xten.com"
-            ]
-        }]
-    });
+class Offerer extends PeerBase {
     dc = this.pc.createDataChannel("");
-    private didSetRemote = false;
-    private iceCandidateQueue: RTCIceCandidate[] = [];
 
     constructor() {
         super();
 
-        this.pc.ondatachannel = e => super.emit("datachannel", e);
         this.dc.onmessage = e => super.emit("datachannelmessage", e);
         this.dc.onopen = e => super.emit("datachannelopen", e);
         this.dc.onclose = e => super.emit("datachannelclose", e);
-        this.pc.onicecandidate = e => super.emit("icecandidate", e);
     }
 
     async beginOffer() {
@@ -48,23 +20,8 @@ class Offerer extends EventEmitter {
         return offer;
     }
 
-    async putAnswer(answer: RTCSessionDescription) {
-        await this.pc.setRemoteDescription(answer);
-        this.didSetRemote = true;
-        await Promise.all(this.iceCandidateQueue.map(
-            x => (this.pc as any).addIceCandidate(x)));
-    }
-
-    async addIceCandidate(candidate: RTCIceCandidate) {
-        if (this.didSetRemote) {
-            await (this.pc as any).addIceCandidate(candidate);
-        } else {
-            this.iceCandidateQueue.push(candidate);
-        }
-    }
-
-    close() {
-        this.pc.close();
+    putAnswer(answer: RTCSessionDescription) {
+        return this.setRemoteDescription(answer);
     }
 }
 
