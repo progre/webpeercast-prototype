@@ -2,7 +2,7 @@
 import "babel-polyfill";
 import "webrtc-adapter";
 
-import { log } from "./samplelib.ts";
+import { log, fancy_log, pc1OnDataChannel } from "./samplelib.ts";
 import * as webRTC from "./webrtc.ts";
 import "./answerer.ts";
 import { step0 } from "./offerer.ts";
@@ -75,12 +75,29 @@ async function start() {
         datawindow.removeChild(datawindow.firstChild);
     }
 
+    (window as any).offererObj.on("datachannel", pc1OnDataChannel);
+    (window as any).offererObj.on("datachannelmessage", (evt: any) => {
+        console.log(evt);
+        if (evt.data instanceof Blob) {
+            fancy_log("*** pc2 sent Blob: " + evt.data + ", length=" + evt.data.size, "blue");
+        } else {
+            fancy_log('pc2 said: ' + evt.data, "blue");
+        }
+    });
+    (window as any).offererObj.on("datachannelopen", () => {
+        log("pc1 onopen fired for " + (window as any).offererObj.dc);
+        (window as any).offererObj.dc.send("pc1 says this will likely be queued...");
+    });
+    (window as any).offererObj.on("datachannelclose", () => {
+        log("pc1 onclose fired");
+    });
+
     await step0();
 }
 
 function stop() {
     log("closed");
-    (window as any).pc1_close();
+    (window as any).offererObj.close();
     (window as any).pc2_close();
 
     button.innerHTML = "Start!";
