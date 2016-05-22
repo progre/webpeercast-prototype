@@ -38,15 +38,7 @@ class Offerer extends EventEmitter {
         this.dc.onmessage = e => super.emit("datachannelmessage", e);
         this.dc.onopen = e => super.emit("datachannelopen", e);
         this.dc.onclose = e => super.emit("datachannelclose", e);
-        this.pc.onicecandidate = e => {
-            let candidate = e.candidate;
-            if (!candidate) {
-                log("pc1 got end-of-candidates signal");
-                return;
-            }
-            log("pc1 found ICE candidate: " + JSON.stringify(candidate));
-            (window as any).remoteAnswerer.emit("icecandidate", JSON.stringify(candidate))
-        };
+        this.pc.onicecandidate = e => super.emit("icecandidate", e);
     }
 
     async beginOffer() {
@@ -80,6 +72,16 @@ let offerer = new EventEmitter();
 (window as any).remoteOfferer = offerer;
 
 let obj = new Offerer();
+obj.on("icecandidate", (e: RTCIceCandidateEvent) => {
+    let candidate = e.candidate;
+    if (!candidate) {
+        log("pc1 got end-of-candidates signal");
+        return;
+    }
+    log("pc1 found ICE candidate: " + JSON.stringify(candidate));
+    (window as any).remoteAnswerer.emit("icecandidate", JSON.stringify(candidate))
+});
+
 (window as any).offererObj = obj;
 (window as any).pc1 = obj.pc;
 (window as any).dc1 = obj.dc;

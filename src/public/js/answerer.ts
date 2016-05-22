@@ -34,15 +34,7 @@ class Answerer extends EventEmitter {
         super();
 
         this.pc.ondatachannel = e => super.emit("datachannel", e);
-        this.pc.onicecandidate = e => {
-            let candidate = e.candidate;
-            if (!candidate) {
-                log("pc2 got end-of-candidates signal");
-                return;
-            }
-            log("pc2 found ICE candidate: " + JSON.stringify(e.candidate));
-            (window as any).remoteOfferer.emit("icecandidate", JSON.stringify(e.candidate));
-        };
+        this.pc.onicecandidate = e => super.emit("icecandidate", e);
     }
 
     async answerOffer(offer: RTCSessionDescription) {
@@ -72,6 +64,16 @@ let answerer = new EventEmitter();
 (window as any).remoteAnswerer = answerer;
 
 let obj = new Answerer();
+obj.on("icecandidate", (e: RTCIceCandidateEvent) => {
+    let candidate = e.candidate;
+    if (!candidate) {
+        log("pc2 got end-of-candidates signal");
+        return;
+    }
+    log("pc2 found ICE candidate: " + JSON.stringify(e.candidate));
+    (window as any).remoteOfferer.emit("icecandidate", JSON.stringify(e.candidate));
+});
+
 (window as any).answererObj = obj;
 (window as any).pc2 = obj.pc;
 
