@@ -1,5 +1,5 @@
-import { log, pc2OnDataChannel } from "./samplelib.ts";
 import { EventEmitter } from "events";
+import { log } from "./samplelib.ts";
 
 class Answerer extends EventEmitter {
     pc = new RTCPeerConnection(<any>{
@@ -27,8 +27,8 @@ class Answerer extends EventEmitter {
             ]
         }]
     });
-    didSetRemote = false;
-    iceCandidateQueue: RTCIceCandidate[] = [];
+    private didSetRemote = false;
+    private iceCandidateQueue: RTCIceCandidate[] = [];
 
     constructor() {
         super();
@@ -62,17 +62,22 @@ class Answerer extends EventEmitter {
             this.iceCandidateQueue.push(candidate);
         }
     }
+
+    close() {
+        this.pc.close();
+    }
 }
+
+let answerer = new EventEmitter();
+(window as any).remoteAnswerer = answerer;
 
 let obj = new Answerer();
 (window as any).answererObj = obj;
 (window as any).pc2 = obj.pc;
 
-let answerer = new EventEmitter();
-
-answerer.on("offer", async (offerJson: string) => {
+answerer.on("offer", async (offerJSON: string) => {
     try {
-        let offer = new RTCSessionDescription(JSON.parse(offerJson));
+        let offer = new RTCSessionDescription(JSON.parse(offerJSON));
         log("Offer: " + offer.sdp);
 
         let answer = await obj.answerOffer(offer);
@@ -84,13 +89,10 @@ answerer.on("offer", async (offerJson: string) => {
 });
 
 answerer.on("icecandidate", async (candidateJSON: string) => {
-    let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
-    await obj.addIceCandidate(candidate);
+    try {
+        let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
+        await obj.addIceCandidate(candidate);
+    } catch (e) {
+        (window as any).failed(e);
+    }
 });
-
-function close() {
-    obj.pc.close();
-}
-
-(window as any).pc2_close = close;
-(window as any).remoteAnswerer = answerer;

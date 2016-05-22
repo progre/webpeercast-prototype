@@ -99,7 +99,7 @@ async function start() {
 function stop() {
     log("closed");
     (window as any).offererObj.close();
-    (window as any).pc2_close();
+    (window as any).answererObj.close();
 
     button.innerHTML = "Start!";
     button.onclick = start;

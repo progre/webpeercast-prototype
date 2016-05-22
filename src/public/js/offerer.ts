@@ -95,11 +95,20 @@ export async function step0() {
 
 // pc2.setLocal finished, call pc1.setRemote
 offerer.on("answer", async (answerJSON: string) => {
-    await obj.putAnswer(new RTCSessionDescription(JSON.parse(answerJSON)));
-    log("HIP HIP HOORAY");
+    try {
+        let answer = new RTCSessionDescription(JSON.parse(answerJSON));
+        await obj.putAnswer(answer);
+        log("HIP HIP HOORAY");
+    } catch (e) {
+        (window as any).failed(e);
+    }
 });
 
 offerer.on("icecandidate", async (candidateJSON: string) => {
-    let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
-    await obj.addIceCandidate(candidate);
+    try {
+        let candidate = new RTCIceCandidate(JSON.parse(candidateJSON));
+        await obj.addIceCandidate(candidate);
+    } catch (e) {
+        (window as any).failed(e);
+    }
 });
