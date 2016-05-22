@@ -65,8 +65,9 @@ async function step4(answer: any) {
     (window as any).offerer.emit("step5");
 }
 
-answerer.on("close", () => {
+function close() {
     (window as any).pc2.close();
-});
+}
 
+(window as any).pc2_close = close;
 (window as any).answerer = answerer;

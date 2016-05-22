@@ -72,3 +72,9 @@ function step6() {
     }
     log("HIP HIP HOORAY");
 }
+
+function close() {
+    (window as any).pc1.close();
+}
+
+(window as any).pc1_close = close;

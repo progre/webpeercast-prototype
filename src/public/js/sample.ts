@@ -2,7 +2,7 @@
 import "babel-polyfill";
 import "webrtc-adapter";
 
-import { log, fancy_log, pc1OnDataChannel, pc2OnDataChannel } from "./samplelib.ts";
+import { log } from "./samplelib.ts";
 import * as webRTC from "./webrtc.ts";
 import "./answerer.ts";
 import { step0 } from "./offerer.ts";
@@ -80,8 +80,8 @@ async function start() {
 
 function stop() {
     log("closed");
-    (window as any).pc1.close();
-    (window as any).answerer.emit("close");
+    (window as any).pc1_close();
+    (window as any).pc2_close();
 
     button.innerHTML = "Start!";
     button.onclick = start;
