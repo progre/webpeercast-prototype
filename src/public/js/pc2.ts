@@ -3,6 +3,7 @@ import { log, fancy_log } from "./samplelib.ts";
 import Answerer from "./answerer.ts";
 
 export function init(remoteOfferer: EventEmitter) {
+    let remote = new EventEmitter();
     let obj = new Answerer();
     obj.on("icecandidate", (e: RTCIceCandidateEvent) => {
         try {
@@ -10,7 +11,7 @@ export function init(remoteOfferer: EventEmitter) {
             if (!candidate) {
                 return;
             }
-            remoteOfferer.emit("icecandidate", JSON.stringify(e.candidate));
+            remote.emit("icecandidate", JSON.stringify(e.candidate));
         } catch (e) {
             (window as any).failed(e);
         }
@@ -23,15 +24,15 @@ export function init(remoteOfferer: EventEmitter) {
         }
     });
 
-    let remote = new EventEmitter();
     remote.on("offer", async (offerJSON: string) => {
         try {
+            console.log("offer", offerJSON);
             let offer = new RTCSessionDescription(JSON.parse(offerJSON));
             log("Offer: " + offer.sdp);
 
             let answer = await obj.answerOffer(offer);
             log("Answer: " + answer.sdp);
-            remoteOfferer.emit("answer", JSON.stringify(answer));
+            remote.emit("answer", JSON.stringify(answer));
         } catch (e) {
             (window as any).failed(e);
         }

@@ -40,6 +40,7 @@ export default class Offerer extends PeerBase {
         }
         this.signaling = signaling;
         this.signaling.on("icecandidate", this.onSignalingIceCandidate);
+        let offer = await this.offer();
         let answer: RTCSessionDescription = await new Promise((resolve, reject) => {
             let onAnswer = async (answerJSON: string) => {
                 try {
@@ -49,14 +50,16 @@ export default class Offerer extends PeerBase {
                     reject(e);
                 }
             };
-            this.on("answer", onAnswer);
-
-            let offer = this.offer();
-            console.log("offer", offer);
+            this.signaling.on("answer", onAnswer);
             this.signaling.emit("offer", JSON.stringify(offer));
         });
-        console.log("Is it's answer for offer?", answer); // TODO: Is it's answer for offer?
         await this.putAnswer(answer);
+    }
+
+    close() {
+        super.close();
+
+        this.signaling.removeListener("icecandidate", this.onSignalingIceCandidate);
     }
 
     private async offer() {
@@ -66,13 +69,7 @@ export default class Offerer extends PeerBase {
         return offer;
     }
 
-    putAnswer(answer: RTCSessionDescription) {
+    private putAnswer(answer: RTCSessionDescription) {
         return this.setRemoteDescription(answer);
-    }
-
-    close() {
-        super.close();
-
-        this.signaling.removeListener("icecandidate", this.onSignalingIceCandidate);
     }
 }
