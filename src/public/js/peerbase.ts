@@ -30,13 +30,6 @@ export default class PeerBase extends EventEmitter {
     private didSetRemote = false;
     private iceCandidateQueue: RTCIceCandidate[] = [];
 
-    constructor() {
-        super();
-
-        this.pc.ondatachannel = e => super.emit("datachannel", e);
-        this.pc.onicecandidate = e => super.emit("icecandidate", e);
-    }
-
     protected setDataChannel(dc: RTCDataChannel) {
         this.dc = dc;
         this.dc.onopen = e => super.emit("datachannelopen", e);
