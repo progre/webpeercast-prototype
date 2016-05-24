@@ -9,9 +9,11 @@ import {app, BrowserWindow} from "electron";
 log4js.configure({
     appenders: [{ type: "console", layout: { type: "basic" } }]
 });
+const logger = log4js.getLogger();
 
 async function main() {
     await new Promise((resolve, reject) => app.once("ready", resolve));
+    logger.info("Initializing...");
     let win = new BrowserWindow({
         width: 800,
         height: 600,
@@ -26,31 +28,25 @@ async function main() {
     }));
     let wsServer = new WebSocketServer({
         httpServer,
-        autoAcceptConnections: true
+        autoAcceptConnections: false
     });
     wsServer.on("request", request => {
-        // if (!originIsAllowed(request.origin)) {
-        //     // Make sure we only accept requests from an allowed origin 
-        //     request.reject();
-        //     console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-        //     return;
-        // }
-
-        let connection = request.accept("echo-protocol", request.origin);
-        connection.on("message", message => {
-            if (message.type === "utf8") {
-                console.log("Received Message: " + message.utf8Data);
+        try {
+            logger.info("WebSocket requesting.");
+            let connection = request.accept("", request.origin);
+            connection.on("message", message => {
+                logger.debug(message);
                 connection.sendUTF(message.utf8Data);
-            } else if (message.type === "binary") {
-                console.log("Received Binary Message of " + message.binaryData.length + " bytes");
-                connection.sendBytes(message.binaryData);
-            }
-        });
-        connection.on("close", (reasonCode, description) => {
-            console.log((new Date()) + " Peer " + connection.remoteAddress + " disconnected.");
-        });
+            });
+            connection.on("close", (reasonCode, description) => {
+                console.log((new Date()) + " Peer " + connection.remoteAddress + " disconnected.");
+            });
+        } catch (e) {
+            logger.error(e.stack || e);
+        }
     });
     httpServer.listen(80);
+    logger.info("Server started.");
 }
 
 main().catch(e => log4js.getLogger().error(e.stack != null ? e.stack : e));
