@@ -6,29 +6,73 @@ import Offerer from "../../public/js/offerer.ts";
 import Answerer from "../../public/js/answerer.ts";
 
 async function main() {
-    let answererSignaling = new EventEmitter();
-    let offererSignaling = new EventEmitter();
-    offererSignaling.on("offer", (json: string) => {
-        answererSignaling.emit("offer", json);
+    let offererToAnswerer = new EventEmitter();
+    let answererToOffer = new EventEmitter();
+    initAnswerer(answererToOffer, offererToAnswerer);
+    initOfferer(offererToAnswerer, answererToOffer);
+}
+
+async function initOfferer(emitter: { emit: Function }, receiver: { on: Function }) {
+    let offerer = new Offerer();
+    receiver.on("answer", async (json: string) => {
+        try {
+            let answer = new RTCSessionDescription(JSON.parse(json));
+            await offerer.setAnswer(answer);
+        } catch (e) {
+            console.error(e.stack || e);
+        }
     });
-    answererSignaling.on("answer", (json: string) => {
-        offererSignaling.emit("answer", json);
+    receiver.on("icecandidate", async (json: string) => {
+        try {
+            let candidate = new RTCIceCandidate(JSON.parse(json));
+            await offerer.addIceCandidate(candidate);
+        } catch (e) {
+            console.error(e.stack || e);
+        }
     });
-    let answerer = new Answerer(answererSignaling);
-    answerer.on("icecandidate", (json: string) => {
-        offererSignaling.emit("icecandidate", json);
-    });
-    answerer.on("datachannelopen", () => {
-        answerer.on("datachannelmessage", (e: RTCMessageEvent) => console.log("answerer", e));
-        answerer.dc.send("send to offerer");
-    });
-    let offerer = await Offerer.create(offererSignaling);
-    offerer.on("icecandidate", (json: string) => {
-        answererSignaling.emit("icecandidate", json);
+    offerer.on("icecandidate", (candidate: RTCIceCandidate) => {
+        emitter.emit("icecandidate", JSON.stringify(candidate));
     });
     offerer.on("datachannelopen", () => {
-        offerer.on("datachannelmessage", (e: RTCMessageEvent) => console.log("offerer", e));
-        offerer.dc.send("send to answerer");
+        try {
+            offerer.on("datachannelmessage", (e: RTCMessageEvent) => console.log("offerer", e));
+            offerer.dc.send("send to answerer");
+        } catch (e) {
+            console.error(e.stack || e);
+        }
+    });
+    emitter.emit("offer", JSON.stringify(await offerer.offer()));
+}
+
+async function initAnswerer(emitter: { emit: Function }, receiver: { on: Function }) {
+    let answerer = new Answerer();
+    receiver.on("offer", async (json: string) => {
+        try {
+            let offer = new RTCSessionDescription(JSON.parse(json));
+            let answer = await answerer.answerOffer(offer);
+            emitter.emit("answer", JSON.stringify(answer));
+        } catch (e) {
+            console.error(e.stack || e);
+        }
+    });
+    receiver.on("icecandidate", async (json: string) => {
+        try {
+            let candidate = new RTCIceCandidate(JSON.parse(json));
+            await answerer.addIceCandidate(candidate);
+        } catch (e) {
+            console.error(e.stack || e);
+        }
+    });
+    answerer.on("icecandidate", (candidate: RTCIceCandidate) => {
+        emitter.emit("icecandidate", JSON.stringify(candidate));
+    });
+    answerer.on("datachannelopen", () => {
+        try {
+            answerer.on("datachannelmessage", (e: RTCMessageEvent) => console.log("answerer", e));
+            answerer.dc.send("send to offerer");
+        } catch (e) {
+            console.error(e.stack || e);
+        }
     });
 }
 
