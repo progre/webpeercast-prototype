@@ -14,7 +14,7 @@ export default class Answerer extends PeerBase {
                 if (!candidate) {
                     return;
                 }
-                signaling.emit("icecandidate", JSON.stringify(e.candidate));
+                this.emit("icecandidate", JSON.stringify(e.candidate));
             } catch (e) {
                 (window as any).failed(e);
             }

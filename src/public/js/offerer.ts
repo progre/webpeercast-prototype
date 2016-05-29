@@ -31,9 +31,7 @@ export default class Offerer extends PeerBase {
                 if (!candidate) {
                     return;
                 }
-                if (this.signaling != null) {
-                    this.signaling.emit("icecandidate", JSON.stringify(candidate));
-                }
+                this.emit("icecandidate", JSON.stringify(candidate));
             } catch (e) {
                 console.error(e.stack || e);
             }
