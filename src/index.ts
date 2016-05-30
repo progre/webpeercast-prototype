@@ -4,7 +4,7 @@ import * as http from "http";
 const log4js = require("log4js");
 const st = require("st");
 import {server as WebSocketServer} from "websocket";
-import {app, BrowserWindow} from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 
 log4js.configure({
     appenders: [{ type: "console", layout: { type: "basic" } }]
@@ -20,6 +20,11 @@ async function main() {
     });
     win.loadURL(`file://${__dirname}/renderer/index.html`);
 
+    initHTTPServer();
+    initIpc();
+}
+
+function initHTTPServer() {
     let httpServer = http.createServer(st({
         path: `${__dirname}/public`,
         index: "index.html"
@@ -51,6 +56,18 @@ async function main() {
         });
     });
     httpServer.listen(80);
+}
+
+function initIpc() {
+    ipcMain.on("offer", (e, arg) => {
+        e.sender.send("offer", arg);
+    });
+    ipcMain.on("answer", (e, arg) => {
+        e.sender.send("answer", arg);
+    });
+    ipcMain.on("icecandidate", (e, arg) => {
+        e.sender.send("icecandidate", arg);
+    });
 }
 
 main().catch(e => log4js.getLogger().error(e.stack != null ? e.stack : e));

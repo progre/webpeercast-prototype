@@ -2,36 +2,37 @@
 import "babel-polyfill";
 import "webrtc-adapter";
 import { EventEmitter } from "events";
+const ipcRenderer: Electron.IpcRenderer = (window as any).require("electron").ipcRenderer;
 import Offerer from "../../public/js/offerer.ts";
 import Answerer from "../../public/js/answerer.ts";
 
 async function main() {
-    let offererToAnswerer = new EventEmitter();
-    let answererToOffer = new EventEmitter();
-    initAnswerer(answererToOffer, offererToAnswerer);
-    initOfferer(offererToAnswerer, answererToOffer);
+    // let offererToAnswerer = new EventEmitter();
+    // let answererToOffer = new EventEmitter();
+    initAnswerer();
+    initOfferer();
 }
 
-async function initOfferer(emitter: { emit: Function }, receiver: { on: Function }) {
+async function initOfferer() {
     let offerer = new Offerer();
-    receiver.on("answer", async (json: string) => {
+    ipcRenderer.on("answer", async (e, arg) => {
         try {
-            let answer = new RTCSessionDescription(JSON.parse(json));
+            let answer = new RTCSessionDescription(JSON.parse(arg));
             await offerer.setAnswer(answer);
         } catch (e) {
             console.error(e.stack || e);
         }
     });
-    receiver.on("icecandidate", async (json: string) => {
+    ipcRenderer.on("icecandidate", async (e, arg) => {
         try {
-            let candidate = new RTCIceCandidate(JSON.parse(json));
+            let candidate = new RTCIceCandidate(JSON.parse(arg));
             await offerer.addIceCandidate(candidate);
         } catch (e) {
             console.error(e.stack || e);
         }
     });
     offerer.on("icecandidate", (candidate: RTCIceCandidate) => {
-        emitter.emit("icecandidate", JSON.stringify(candidate));
+        ipcRenderer.send("icecandidate", JSON.stringify(candidate));
     });
     offerer.on("datachannelopen", () => {
         try {
@@ -41,30 +42,30 @@ async function initOfferer(emitter: { emit: Function }, receiver: { on: Function
             console.error(e.stack || e);
         }
     });
-    emitter.emit("offer", JSON.stringify(await offerer.offer()));
+    ipcRenderer.send("offer", JSON.stringify(await offerer.offer()));
 }
 
-async function initAnswerer(emitter: { emit: Function }, receiver: { on: Function }) {
+async function initAnswerer() {
     let answerer = new Answerer();
-    receiver.on("offer", async (json: string) => {
+    ipcRenderer.on("offer", async (e, arg) => {
         try {
-            let offer = new RTCSessionDescription(JSON.parse(json));
+            let offer = new RTCSessionDescription(JSON.parse(arg));
             let answer = await answerer.answerOffer(offer);
-            emitter.emit("answer", JSON.stringify(answer));
+            ipcRenderer.send("answer", JSON.stringify(answer));
         } catch (e) {
             console.error(e.stack || e);
         }
     });
-    receiver.on("icecandidate", async (json: string) => {
+    ipcRenderer.on("icecandidate", async (e, arg) => {
         try {
-            let candidate = new RTCIceCandidate(JSON.parse(json));
+            let candidate = new RTCIceCandidate(JSON.parse(arg));
             await answerer.addIceCandidate(candidate);
         } catch (e) {
             console.error(e.stack || e);
         }
     });
     answerer.on("icecandidate", (candidate: RTCIceCandidate) => {
-        emitter.emit("icecandidate", JSON.stringify(candidate));
+        ipcRenderer.send("icecandidate", JSON.stringify(candidate));
     });
     answerer.on("datachannelopen", () => {
         try {
