@@ -7,7 +7,7 @@
   "dependencies": {
     "log4js": "^0.6.36",
     "st": "^1.1.0",
-    "websocket": "^1.0.23"
+    "ws": "^1.1.0"
   },
   "devDependencies": {
     "babel-eslint": "^6.0.4",

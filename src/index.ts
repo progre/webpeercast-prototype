@@ -3,12 +3,12 @@ try { require("source-map-support").install(); } catch (e) { /* empty */ }
 import * as http from "http";
 const log4js = require("log4js");
 const st = require("st");
-import {server as WebSocketServer} from "websocket";
-import { app, BrowserWindow, ipcMain } from "electron";
-
+import * as WebSocket from "ws";
+import {app, BrowserWindow, ipcMain} from "electron";
 log4js.configure({
     appenders: [{ type: "console", layout: { type: "basic" } }]
 });
+const logger = log4js.getLogger();
 
 async function main() {
     await new Promise((resolve, reject) => app.once("ready", resolve));
@@ -20,53 +20,49 @@ async function main() {
     });
     win.loadURL(`file://${__dirname}/renderer/index.html`);
 
-    initHTTPServer();
+    initHTTPServer(win.webContents);
     initIpc();
 }
 
-function initHTTPServer() {
+let globalWebSocket: WebSocket;
+
+function initHTTPServer(webContents: Electron.WebContents) {
     let httpServer = http.createServer(st({
         path: `${__dirname}/public`,
         index: "index.html"
     }));
-    let wsServer = new WebSocketServer({
-        httpServer,
-        autoAcceptConnections: true
-    });
-    wsServer.on("request", request => {
-        // if (!originIsAllowed(request.origin)) {
-        //     // Make sure we only accept requests from an allowed origin 
-        //     request.reject();
-        //     console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-        //     return;
-        // }
-
-        let connection = request.accept("echo-protocol", request.origin);
-        connection.on("message", message => {
-            if (message.type === "utf8") {
-                console.log("Received Message: " + message.utf8Data);
-                connection.sendUTF(message.utf8Data);
-            } else if (message.type === "binary") {
-                console.log("Received Binary Message of " + message.binaryData.length + " bytes");
-                connection.sendBytes(message.binaryData);
-            }
-        });
-        connection.on("close", (reasonCode, description) => {
-            console.log((new Date()) + " Peer " + connection.remoteAddress + " disconnected.");
-        });
+    let wsServer = new WebSocket.Server({ server: httpServer });
+    wsServer.on("connection", client => {
+        try {
+            client.on("message", message => {
+                let obj = JSON.parse(message);
+                switch (obj.type) {
+                    case "offer":
+                        webContents.send(obj.type, obj.data);
+                        globalWebSocket = client;
+                        break;
+                    case "icecandidate":
+                        webContents.send(obj.type, obj.data);
+                        break;
+                }
+                client.send(message.utf8Data);
+            });
+            client.on("close", (code, message) => {
+                logger.info("Closed.", code, message);
+            });
+        } catch (e) {
+            logger.error(e.stack || e);
+        }
     });
     httpServer.listen(80);
 }
 
 function initIpc() {
-    ipcMain.on("offer", (e, arg) => {
-        e.sender.send("offer", arg);
-    });
     ipcMain.on("answer", (e, arg) => {
-        e.sender.send("answer", arg);
+        globalWebSocket.send(JSON.stringify({ type: "answer", data: JSON.parse(arg) }));
     });
     ipcMain.on("icecandidate", (e, arg) => {
-        e.sender.send("icecandidate", arg);
+        globalWebSocket.send(JSON.stringify({ type: "icecandidate", data: JSON.parse(arg) }));
     });
 }
 
